@@ -103,7 +103,7 @@ class Simulator:
                 break
 
         if not done:
-            log.warning("Simulation terminated early! (needs more iterations)")
+            log.warning("Simulation terminated early! (may need more iterations)")
 
         self.trajectory = np.vstack(self.trajectory)
         self.actions = np.vstack(self.actions)

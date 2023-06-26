@@ -134,7 +134,7 @@ if scen := args["--scenario"]:
     scenarios = [(scen, scenarios[scen])]
 
 else:
-    scenarios = enumerate(scenarios)
+    scenarios = list(enumerate(scenarios))
 
 # ┏━┓┏━┓┏━┓┏━┓╻  ╻  ┏━╸╻     ┏┳┓┏━┓╺┳┓┏━╸
 # ┣━┛┣━┫┣┳┛┣━┫┃  ┃  ┣╸ ┃     ┃┃┃┃ ┃ ┃┃┣╸

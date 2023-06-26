@@ -77,6 +77,8 @@ class ClassicMPC(Algorithm):
         self.time_horizon = time_horizon
         self.horizon = int(time_horizon / self.sample_time)
 
+        self.problem = None
+
     def setup(self, env):
         self.setup_model(env)
         self.setup_constraints(env.get_landing_position())
@@ -123,7 +125,7 @@ class ClassicMPC(Algorithm):
         self.zf = np.hstack([landing_pos[:2], np.zeros((4,))]) - self.zs
         log.debug(f"Terminal state zf={self.zf}")
 
-       # Tuning parameters for MPC
+        # Tuning parameters for MPC
         self.Q = np.diag([10, 1, 10, 4, 500, 200])
         self.S = np.eye(self.nz) * 100
         self.R = np.diag([1, 10, 10])

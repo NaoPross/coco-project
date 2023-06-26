@@ -15,13 +15,16 @@ def show_source(fn):
     return ipy.display.Code(src, language="py")
 
 
+def show_video(simulator):
+    return ipy.display.Video(simulator.videofile, width=video_width,
+                             html_attributes="autoplay loop", embed=True)
+
 def run_and_show_video(simulator):
     if not simulator.videofile.resolve().exists():
         log.info("Video not found, running simulator ...")
         simulator.run()
 
-    return ipy.display.Video(simulator.videofile, width=video_width,
-                             html_attributes="autoplay loop", embed=True)
+    return show_video(simulator)
 
 
 def delete_video(simulator):
