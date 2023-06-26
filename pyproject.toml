@@ -1,17 +1,24 @@
 [tool.poetry]
-name = "rocket"
+name = "coco-rocket-lander-npross"
 version = "0.1.0"
 description = ""
 authors = ["Nao Pross <np@0hm.ch>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
+coco-rocket-lander = { git = "git+https://gitlab.ethz.ch/bsaverio/coco-project.git@main" }
 python = ">=3.8,<3.12"
-coco-rocket-lander = { git = "https://gitlab.ethz.ch/bsaverio/coco-project.git" }
 cvxpy = "^1.3.1"
 colorlog = "^6.7.0"
-numpy = "1.22.4"
+numpy = "^1.24.3"
+tqdm = "^4.65.0"
+docopt = "^0.6.2"
+scipy = "^1.10.1"
 
+
+[tool.poetry.group.dev.dependencies]
+coco-rocket-lander = { git = "../coco-project/.git" }
+notebook = "^6.5.4"
 
 [build-system]
 requires = ["poetry-core"]
