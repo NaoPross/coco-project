@@ -82,14 +82,14 @@ class Simulator:
         obs, info = self.env.reset(seed=self.seed)
 
         lpos = np.array(self.env.get_landing_position())
-        self.alg.setup(self.env, lpos)
+        self.alg.setup(self.env)
 
         for i in tqdm(range(self.max_niters), leave=False,
                 disable=not self.interactive, file=sys.stdout):
 
             try:
                 self.trajectory.append(obs)
-                action, solvetime = self.alg.run(np.array(obs))
+                action, solvetime = self.alg.run(np.array(obs), self.env)
                 self.actions.append(action)
                 self.solvetimes.append(solvetime)
             except RuntimeError as e:

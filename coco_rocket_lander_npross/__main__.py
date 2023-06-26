@@ -69,7 +69,7 @@ import numpy as np
 np.set_printoptions(precision=2)
 
 from coco_rocket_lander_npross.simulator import Simulator, scenarios, mp_simulate
-from coco_rocket_lander_npross.algorithms import PID, ClassicMPC
+from coco_rocket_lander_npross.algorithms import PID, ClassicMPC, RelaxedMPC, ParametricMPC
 
 
 def open_file(filename):
@@ -88,6 +88,8 @@ log.debug("Ran with args = " + str(args))
 ALGORITHMS = {
     "pid": PID,
     "cmpc": ClassicMPC,
+    "rmpc": RelaxedMPC,
+    "pmpc": ParametricMPC,
 }
 
 # List algorithms and exit
