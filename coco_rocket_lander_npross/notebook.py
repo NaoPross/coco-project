@@ -12,7 +12,7 @@ video_width = 500
 
 def show_source(fn):
     src = inspect.getsource(fn)
-    display(ipy.display.Code(src, language="py"))
+    return ipy.display.Code(src, language="py")
 
 
 def run_and_show_video(simulator):
@@ -20,8 +20,8 @@ def run_and_show_video(simulator):
         log.info("Video not found, running simulator ...")
         simulator.run()
 
-    display(ipy.display.Video(simulator.videofile, width=video_width,
-                              html_attributes="autoplay")) # loop
+    return ipy.display.Video(simulator.videofile, width=video_width,
+                             html_attributes="autoplay loop", embed=True)
 
 
 def delete_video(simulator):
@@ -38,5 +38,5 @@ def print_matrix(name: str, m: np.ndarray):
         s += " & ".join(map(str, m[r, :]))
         s += r"\\"
     s += r"\end{bmatrix}$$"
-    display(ipy.display.Latex(s))
+    return ipy.display.Latex(s)
 
