@@ -1,0 +1,594 @@
+% vim: ts=2 sw=2 et spell:
+\documentclass[xetex, smaller, aspectratio=43]{beamer}
+\usepackage[english]{babel}
+\usetheme{hsr}
+
+% for draft, add [label=current] to frame
+% \includeonlyframes{current}
+
+\uselanguage{english}
+\languagepath{english}
+
+\usepackage[
+  type={CC},
+  modifier={by-nc-sa},
+  version={4.0},
+  lang={english},
+]{doclicense}
+
+\usefonttheme{professionalfonts}
+% \usepackage[scaled]{beramono}
+\usepackage[I]{sansmathfonts}
+\usepackage[bb=boondox]{mathalfa}
+
+\usepackage{oststud}
+\usepackage{regtec}
+\usepackage{tikz}
+\usetikzlibrary{matrix}
+\usetikzlibrary{math}
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{fadings}
+
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% source code
+\usepackage{listings}
+%% create a lstlisting style
+\lstdefinestyle{samplestyle}{
+    belowcaptionskip=\baselineskip,
+    breaklines=true,
+    frame=none,
+    inputencoding=utf8,
+    % margin
+    xleftmargin=\parindent,
+    % background
+    backgroundcolor=\color{hsr-lightgrey20},
+    % default language:
+    language=[LaTeX]TeX,
+    showstringspaces=false,
+    % font
+    basicstyle=\ttfamily\small,
+    identifierstyle=\color{hsr-black},
+    keywordstyle=\color{hsr-blue},
+    commentstyle=\color{hsr-black40},
+    stringstyle=\color{hsr-mauve80},
+}
+
+%% and set the chosen style
+\lstset{style=samplestyle, escapechar=`}
+
+\title{Computing Trajectories for Vertical Landing}
+\subtitle{\slshape Computational Control Project}
+\author{Naoki Sean Pross}
+\date{Spring Semester 2023}
+\institute[ETHZ]{ETH Zürich}
+
+\begin{document}
+
+\frame{
+  \maketitle
+  \centering
+  \doclicenseImage[imagewidth=5em]
+}
+
+\section{Current State}
+
+\begin{frame}[fragile]{Current State}
+  \begin{columns}
+    \begin{column}[b]{.5\linewidth}
+      \begin{block}{Rocket Model}
+        Non-linear dynamics linearised around $z_s = 0$,
+        $u_s = \mt{\begin{bmatrix} mg & 0 & 0 \end{bmatrix}}$:
+        \[
+          z_{n+1} = A z_n + B u_n,
+        \]
+        where
+        \begin{align*}
+          z &= \mt{\begin{bmatrix}
+            ~x & y & \dot{x} & \dot{y} & \theta & \dot{\theta}~
+          \end{bmatrix}}, \\
+          u &= \mt{\begin{bmatrix}
+            ~F_E & F_S & \varphi~
+          \end{bmatrix}}.
+        \end{align*}
+      \end{block}
+      \begin{block}{Controller}
+        Decoupled PID controllers for $F_E$, $F_S$ and $\varphi$,
+        unaware of each other.
+      \end{block}
+    \end{column}
+    \begin{column}[b]{.5\linewidth}
+      \begin{center}
+        \begin{tikzpicture}[
+            dot/.style = {
+              circle, fill=white, thick, draw=black, 
+              inner sep = 0, outer sep = 0,
+              minimum size = .8mm
+            },
+            force/.style = {thick, -latex},
+          ]
+          \begin{scope}[rotate=-30]
+            \coordinate (C) at (0,0);
+
+            \fill[lightgray!40] (-.25,-1) rectangle (.25,2);
+            % nozzle
+            \fill[lightgray!40] (-.1,-1) -- (.1,-1) --
+              (.2,-1.2) -- (-.2,-1.2) -- cycle;
+            % head
+            \fill[lightgray!40] (-.25,2) -- (0,2.2) -- (.25,2) -- cycle;
+
+            \draw[thick] (0,0) --
+              node[midway, below right] {$\ell_1$} (0,2)
+              coordinate (S);
+            \draw[thick] (0,0) --
+              node[midway, above left] {$\ell_2$} (0,-1)
+              coordinate (E);
+
+            \draw[force, blue!80!black] (S) --
+              node[near end, above right] {$F_S$} ++(.75,0);
+            \draw[force, blue!80!black] (E) --
+              node[near end, above left] {$F_E$} ++(-120:1.6);
+
+            \draw[thick, gray, densely dotted] (E) -- ++(0,-1.4)
+              coordinate (Ee);
+            \draw[thick, gray] ($(E)+(0,-.75)$) arc (-90:-120:.75)
+              node[midway, below left] {$\varphi$};
+          \end{scope}
+
+          \draw[thick, gray, densely dotted] (C) -- ++(0,2);
+          \draw[thick, gray, densely dotted] (C) -- ++(0,-2);
+
+          \draw[force, red!80!black] (C) -- ++(0,-1)
+            node[right] {$mg$};
+
+          \draw[thick, gray] ($(C)+(0,-1.6)$) arc (-90:-120:1.6)
+            node[midway, below] {$\theta$};
+
+          \node[dot] at (C) {};
+          \node[dot] at (E) {};
+          \node[dot] at (S) {};
+
+          \node[dot] (A) at ($(C)+(-1.7,1)$) {};
+          \draw[thick, -latex] (A) -- ++ (.5,0) node[right] {$\uvec{x}$};
+          \draw[thick, -latex] (A) -- ++ (0,.5) node[above] {$\uvec{y}$};
+        \end{tikzpicture}
+      \end{center}
+      \begin{alertblock}{Behaviour}
+        \begin{itemize}
+          \item Work well for ``good'' $z_0$
+          \item Breaks easily $\leadsto$ need to retune
+          \item Waits and high thrust near end
+        \end{itemize}
+      \end{alertblock}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\section{Failure Mode}
+
+\begin{frame}[fragile]{Failure Mode}
+
+  Plots: Trajectories on the $xy$ plane, color is the $y$ velocity (red is fast).
+
+  \begin{columns}[T]
+    \pgfplotsset{
+      every axis/.style = {
+        axis lines = left,
+        % width = 43mm,
+        width = 1.1\linewidth,
+        height = 5cm,
+        xlabel = {Position $x$},
+        ylabel = {Position $y$},
+        xmin = 0, xmax = 30,
+        ymin = 5, ymax = 26,
+        colormap name = hot, % viridis,
+        semithick, font = \tiny,
+        % xtick = \empty, ytick = \empty,
+        % xticklabels = \empty, yticklabels = \empty,
+      }
+    }
+
+    \tikzset{
+      target/.style = {
+        thick, draw = black, fill = white,
+        inner sep = 0, outer sep = 0,
+        shape = diamond, minimum size = 1mm,
+      },
+    }
+
+    \begin{column}{.33\linewidth}
+      \begin{exampleblock}{Bad $x_0$ Coordinate}
+        Overshoots landing pad \\[.5em]
+        \begin{tikzpicture}
+          \begin{axis}
+            % \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/pid-0.dat};
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/pid-1.dat};
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/pid-2.dat};
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/pid-3.dat};
+            \node[target, label={180:Target}] (T) at (axis cs:16.7, 7.5) {};
+            \draw[lightgray, densely dotted] (T) -- ++(axis cs:0,23);
+          \end{axis}
+        \end{tikzpicture}
+      \end{exampleblock}
+    \end{column}
+
+    \begin{column}{.33\linewidth}
+      \begin{exampleblock}{Bad $\theta_0$ Angle}
+        Not enough side thrust \\[.5em]
+        \begin{tikzpicture}
+          \begin{axis}
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/pid-4.dat};
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/pid-5.dat};
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/pid-6.dat};
+            \node[target, label={0:Target}] (T) at (axis cs:16.7, 7.5) {};
+            \draw[lightgray, densely dotted] (T) -- ++(axis cs:0,23);
+          \end{axis}
+        \end{tikzpicture}
+      \end{exampleblock}
+    \end{column}
+
+    \begin{column}{.33\linewidth}
+      \begin{exampleblock}{Bad $y_0$ Coordinate}
+        Too little thrust \\[.5em]
+        \begin{tikzpicture}
+          \begin{axis}
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/pid-7.dat};
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/pid-8.dat};
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/pid-9.dat};
+            \node[target] (T) at (axis cs:16.7, 7.5) {};
+          \end{axis}
+        \end{tikzpicture}
+      \end{exampleblock}
+    \end{column}
+  \end{columns}
+
+  \begin{alertblock}{Intuition}
+    Decoupled controllers cannot coordinate in difficult situations (far from set point) and fail hard.
+  \end{alertblock}
+\end{frame}
+
+\section{Recommendation}
+
+\begin{frame}[fragile]{Recommendation}
+  \begin{columns}[T]
+    \begin{column}{.5\linewidth}
+      \begin{block}{Proposed Controller} \small
+        Relaxed linear MPC on linearised dynamics \\[.5em]
+
+        \textbf{Strengths}
+        \begin{itemize}
+          \item Cutting edge, yet proven to be reliable
+          \item Optimize fuel consumption
+          \item ``Easy'' to specify constraints
+          \item Possible to extend with more powerful theory if necessary (eg.
+            sequential convex programming)
+        \end{itemize}
+
+        \textbf{Weaknesses}
+        \begin{itemize}
+          \item Computationally more expensive
+          \item No theoretical stability guarantee (because of linearisation)
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{.5\linewidth}
+      \begin{alertblock}{Key Idea of MPC} \small
+        Continuously predict future to decide next action.
+      \end{alertblock}
+      \begin{center}
+        \begin{tikzpicture}[
+            dot/.style = {
+              circle, fill=white, thick, draw=black, 
+              inner sep = 0, outer sep = 0,
+              minimum size = .8mm
+            },
+            rocket/.pic = {
+              \fill[lightgray!50] (-.25,-1) rectangle (.25,2);
+              \fill[lightgray!50] (-.1,-1) -- (.1,-1) --
+                (.2,-1.2) -- (-.2,-1.2) -- cycle;
+              \fill[lightgray!50] (-.25,2) -- (0,2.2) -- (.25,2) -- cycle;
+            }
+          ]
+          % Rocket
+          \coordinate (R) at (-2, 4);
+          % Target
+          \coordinate (T) at (0,0);
+
+          \draw (R) pic[scale=.6, rotate=10] {rocket};
+
+          \draw[thick, draw=white, double=black] (R) to[out=120, in=-20] 
+            node[near start, left, text width = 16mm] {Real \\ Trajectory} 
+            ++(-1.2,1.5) node[dot] (Rp) {};
+
+          \draw[thick, opacity=.8, draw=white, double=red!80!black, path fading=south]
+            (Rp) to[out=-20, in=90] coordinate[pos=.3] (PP) (T);
+          \node[above right, text width = 15mm, red!80!black]
+            at (PP) {Previous Prediction};
+
+          \draw[thick, opacity=.8, draw=white, double=blue!80!black, path fading=south]
+            (R) to[out=-60, in=90] coordinate[pos=.3] (CP) (T);
+          \node[above right, fill = white, text width = 15mm, text = blue!80!black]
+            at (CP) {Current Prediction};
+
+          \node[dot] at (R) {};
+          \node[dot, shape = diamond, minimum size = 1mm,
+            label={180:Target}] at (T) {};
+
+          \begin{scope}[shift={(-3.7,1)}, font=\small]
+            \node [
+              thick, draw=gray, fill=white,
+              minimum width = 2.2cm, minimum height=3.5cm,
+            ] (box) at (.1,.6) {};
+            \draw pic[scale=.6] {rocket};
+            
+            \node[gray, anchor = south west, font=\small]
+              at (box.north west) {Constraints};
+
+            \fill[path fading=north, hsr-petrol, opacity=.8]
+              (120:1.5) arc (120:60:1.5) -- (60:.5) arc (60:120:.5) -- cycle;
+
+            % \draw[dashed] (0,0) -- (0,1.7);
+            \draw[hsr-petrol] (0,1.7) arc (90:60:1.7) 
+              node[near start, above] 
+              {$\theta \in (\underline{\theta}, \overline{\theta})$};
+
+            \draw[hsr-mauve, thick, -latex] (0,-.6)
+              node[above, font=\small, fill=white!50, inner sep = 0, outer sep = 1mm]
+              {$0 \leq F_E < \overline{F}_E$} -- ++(0,-.5);
+          \end{scope}
+
+          \draw[thick, gray, dashed, ->] (CP) to[out=-160, in=0]
+            node[near end, anchor = north west, below right, font=\small, text width=2cm] 
+              {Takes into \\ account} (box.east);
+        \end{tikzpicture}
+      \end{center}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\section{Demonstration}
+
+\begin{frame}{Demonstration}
+  Plots: Trajectories on the $xy$ plane, color is the $y$ velocity (red is fast).
+
+  \begin{columns}[T]
+    \pgfplotsset{
+      every axis/.style = {
+        axis lines = left,
+        % width = 43mm,
+        width = 1.1\linewidth,
+        height = 5cm,
+        xlabel = {Position $x$},
+        ylabel = {Position $y$},
+        xmin = 0, xmax = 30,
+        ymin = 5, ymax = 26,
+        colormap name = hot, % viridis,
+        semithick, font = \tiny,
+        % xtick = \empty, ytick = \empty,
+        % xticklabels = \empty, yticklabels = \empty,
+      }
+    }
+
+    \tikzset{
+      target/.style = {
+        thick, draw = black, fill = white,
+        inner sep = 0, outer sep = 0,
+        shape = diamond, minimum size = 1mm,
+      },
+    }
+
+    \begin{column}{.33\linewidth}
+      \begin{exampleblock}{Bad $x_0$ Coordinate}
+        \begin{tikzpicture}
+          \begin{axis}
+            % \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/pid-0.dat};
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/mpc-1.dat};
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/mpc-2.dat};
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/mpc-3.dat};
+            \node[target, label={0:Target}] (T) at (axis cs:16.7, 7.5) {};
+            \draw[lightgray, densely dotted] (T) -- ++(axis cs:0,23);
+          \end{axis}
+        \end{tikzpicture}
+      \end{exampleblock}
+    \end{column}
+
+    \begin{column}{.33\linewidth}
+      \begin{exampleblock}{Bad $\theta_0$ Angle}
+        \begin{tikzpicture}
+          \begin{axis}
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/mpc-4.dat};
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/mpc-5.dat};
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/mpc-6.dat};
+            \node[target, label={0:Target}] (T) at (axis cs:16.7, 7.5) {};
+            \draw[lightgray, densely dotted] (T) -- ++(axis cs:0,23);
+          \end{axis}
+        \end{tikzpicture}
+      \end{exampleblock}
+    \end{column}
+
+    \begin{column}{.33\linewidth}
+      \begin{exampleblock}{Bad $y_0$ Coordinate}
+        \begin{tikzpicture}
+          \begin{axis}
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/mpc-7.dat};
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/mpc-8.dat};
+            \addplot[thick, mesh] table[x=x, y=y, meta=ydot] {./trajectories/mpc-9.dat};
+            \node[target, label={0:Target}] (T) at (axis cs:16.7, 7.5) {};
+          \end{axis}
+        \end{tikzpicture}
+      \end{exampleblock}
+    \end{column}
+  \end{columns}
+
+  \begin{columns}[t]
+    \begin{column}{.5\linewidth}
+      \begin{block}{Trajectories}
+        MPC handles all situation where PID failed, because it is ``aware'' of
+        what the other actuators are doing.
+      \end{block}
+    \end{column}
+    \begin{column}{.5\linewidth}
+      \begin{alertblock}{Note}
+        Performance does not come for free: it is computationally (a lot) more
+        expensive, but worth it!
+      \end{alertblock}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Deployment Plan}
+  \begin{columns}[T]
+    \begin{column}{.55\linewidth}
+      \begin{tikzpicture}
+        \begin{axis}[
+              semithick,
+              width = \linewidth,
+              xlabel = {Sampling time / ms},
+              ylabel = {Solve time / CPU cycles},
+              ybar, % bar width = 7pt,
+              symbolic x coords = {250, 100, 50, 20, 10},
+              xtick = data, ymax = 2e8,
+              enlarge y limits = 0.05,
+              enlarge x limits = 0.15,
+              font = \small,
+              legend style = {
+                at = {(1, 1.05)},
+                anchor = south east,
+                legend columns = -1,
+                draw = none,
+              },
+              axis on top,
+          ]
+
+          \coordinate (X) at (axis cs: 50,0);
+          \fill[draw = none, left color = white, right color = hsr-mauve40] 
+            (X |- current axis.south) |- (current axis.north east) |- cycle;
+
+          \addplot+[
+            hsr-mauve, sharp plot, dashed, thick, fill = none,
+            update limits = false, mark = -,
+            every mark/.append style = { solid },
+          ] table [
+            x = sampletime-ms, y = sampletime-cycles,
+          ] {./mpc-solvetimes.dat};
+          \addlegendentry{Bound}
+
+          \addplot+[
+            hsr-blue, fill = hsr-blue40,
+            semithick, nodes near coords,
+            nodes near coords style = {
+              above = 1mm,
+              fill = white, 
+              fill opacity = .8,
+              text opacity = 1,
+              inner sep = 1,
+            },
+            error bars/.cd,
+              y dir = both,
+              y explicit,
+          ] table [
+            x = sampletime-ms, y = cycles-mean, y error=cycles-se,
+            meta=horizon, point meta=explicit symbolic,
+          ] {./mpc-solvetimes.dat};
+          \addlegendentry{MPC}
+
+          \node[hsr-blue, text width = 2cm, font = \small] (T) 
+            at (axis cs: 100, 1e8) {Horizon length in samples};
+          \draw[hsr-blue, thick, ->] (T.south) to[out=-90, in=90] (axis cs: 100, .4e8);
+        \end{axis}
+      \end{tikzpicture}
+      {\small
+        Plot: CVXPY with time horizon of 10~s.
+      }
+      \begin{alertblock}{Hardware}
+        \small
+        Modern hardware is very powerful.
+        Decision factors are sampling time and prediction time horizon.
+      \end{alertblock}
+    \end{column}
+    \begin{column}{.45\linewidth}
+      \begin{block}{Computation}
+        \small
+        CPU cycles\footnote{Computation time normalized wrt CPU freq. Plot $f =
+        3.22$~GHz.} needed to predict fixed amount of time into the future grows
+        exponentially with the sampling frequency. Solve time is bounded
+        by sampling time (need action before next sample comes).
+      \end{block}
+      \begin{exampleblock}{Solver Software}
+        \small
+        There are countless options: \\[.2em]
+        \textbf{Commercial solutions}
+        \begin{itemize}
+          \item Embotech AG, MOSEK ApS
+        \end{itemize}
+        \textbf{Free solutions}
+        \begin{itemize}
+          \item CVXgen, CVXPYgen, OSQP, OOQP, CVXOPT, ECOS
+        \end{itemize}
+      \end{exampleblock}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\section{Model-Free Recommendation}
+
+\iffalse
+\begin{frame}{Model-Free Recommendation}
+  \begin{columns}
+    \begin{column}{.5\linewidth}
+      \begin{alertblock}{Model Uncertainty}
+        Linearised model is very inaccurate in $x$ and $\theta$!
+      \end{alertblock}
+    \end{column}
+    \begin{column}{.5\linewidth}
+    \end{column}
+  \end{columns}
+\end{frame}
+\fi
+
+\appendix
+
+\frame{
+  \centering
+  {\Huge\bfseries Backup Slides} \\[1em]
+  If someone wants to know the details \\
+  \textcolor{hsr-lightgrey}{(they are not officially part of the presentation)}
+}
+
+\begin{frame}{What is Relaxed Linear MPC}
+  \begin{block}{Relaxed Linear MPC} \small
+    Non-linear dynamics linearised at $(z_s, u_s)$ to get LTI system $(A, B)$,
+    target landing pad is at $z_f$. In state $z_n$ compute
+    \begin{align*}
+      u^\star - u_s = \argmin_{u_0} &\Bigg\{
+        \mt{z}_N S z_N + \sum_{k=0}^{N-1}
+          \mt{z}_k Q z_k + \mt{u}_k R u_k + V \|\epsilon_k\|_1 
+        \Bigg\} \\
+      \text{subject to}\quad & 
+        \begin{aligned}[t]
+          z_{k+1} &= A z_k + B u_k  && \text{(dynamics)} \\
+          G_z z_k &\leq g_z - G_z z_s + \epsilon_k && \text{(relaxed state constr.)} \\
+          G_u u_k &\leq g_u - G_u u_s && \text{(input constr.)}\\
+          z_N &= z_f - z_s && \text{(terminal constr.)} \\
+          z_0 &= z_n - z_s && \text{(parametrisation)}
+        \end{aligned}
+    \end{align*}
+    Index $n$ is real time, $k$ is the prediction time. The $\epsilon_k$ are
+    linearly penalized slack variables, and $N$ is the ``horizon length'' for
+    the prediction.
+  \end{block}
+
+  \begin{alertblock}{Model Uncertainty} \small
+    The linearised model is very inaccurate in $x$ and $\theta$. To take
+    into account make future states more expensive:
+    \(
+      Q_k = \operatorname{diag} \begin{bmatrix}
+        q_0 + \varsigma_0 k/N & \dots
+        & q_{n_x} + \varsigma_{n_x} k/N
+      \end{bmatrix}.
+    \)
+  \end{alertblock}
+\end{frame}
+
+\end{document}
