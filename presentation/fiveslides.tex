@@ -23,11 +23,11 @@
 
 \usepackage{oststud}
 \usepackage{tikz}
-\usetikzlibrary{calc}
 \usetikzlibrary{matrix}
 \usetikzlibrary{math}
 \usetikzlibrary{shapes.geometric}
 \usetikzlibrary{fadings}
+\usetikzlibrary{calc}
 
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
@@ -66,11 +66,11 @@
 
 \begin{document}
 
-\frame{
-  \maketitle
-  \centering
-  \doclicenseImage[imagewidth=5em]
-}
+% \frame{
+%   \maketitle
+%   \centering
+%   \doclicenseImage[imagewidth=5em]
+% }
 
 \section{Current State}
 
@@ -547,48 +547,48 @@
 \end{frame}
 \fi
 
-\appendix
-
-\frame{
-  \centering
-  {\Huge\bfseries Backup Slides} \\[1em]
-  If someone wants to know the details \\
-  \textcolor{hsr-lightgrey}{(they are not officially part of the presentation)}
-}
-
-\begin{frame}{What is Relaxed Linear MPC}
-  \begin{block}{Relaxed Linear MPC} \small
-    Non-linear dynamics linearised at $(z_s, u_s)$ to get LTI system $(A, B)$,
-    target landing pad is at $z_f$. In state $z_n$ compute
-    \begin{align*}
-      u^\star - u_s = \argmin_{u_0} &\Bigg\{
-        \mt{z}_N S z_N + \sum_{k=0}^{N-1}
-          \mt{z}_k Q z_k + \mt{u}_k R u_k + V \|\epsilon_k\|_1 
-        \Bigg\} \\
-      \text{subject to}\quad & 
-        \begin{aligned}[t]
-          z_{k+1} &= A z_k + B u_k  && \text{(dynamics)} \\
-          G_z z_k &\leq g_z - G_z z_s + \epsilon_k && \text{(relaxed state constr.)} \\
-          G_u u_k &\leq g_u - G_u u_s && \text{(input constr.)}\\
-          z_N &= z_f - z_s && \text{(terminal constr.)} \\
-          z_0 &= z_n - z_s && \text{(parametrisation)}
-        \end{aligned}
-    \end{align*}
-    Index $n$ is real time, $k$ is the prediction time. The $\epsilon_k$ are
-    linearly penalized slack variables, and $N$ is the ``horizon length'' for
-    the prediction.
-  \end{block}
-
-  \begin{alertblock}{Model Uncertainty} \small
-    The linearised model is very inaccurate in $x$ and $\theta$. To take
-    into account make future states more expensive:
-    \(
-      Q_k = \operatorname{diag} \begin{bmatrix}
-        q_0 + \varsigma_0 k/N & \dots
-        & q_{n_x} + \varsigma_{n_x} k/N
-      \end{bmatrix}.
-    \)
-  \end{alertblock}
-\end{frame}
+% \appendix
+% 
+% \frame{
+%   \centering
+%   {\Huge\bfseries Backup Slides} \\[1em]
+%   If someone wants to know the details \\
+%   \textcolor{hsr-lightgrey}{(they are not officially part of the presentation)}
+% }
+% 
+% \begin{frame}{What is Relaxed Linear MPC}
+%   \begin{block}{Relaxed Linear MPC} \small
+%     Non-linear dynamics linearised at $(z_s, u_s)$ to get LTI system $(A, B)$,
+%     target landing pad is at $z_f$. In state $z_n$ compute
+%     \begin{align*}
+%       u^\star - u_s = \argmin_{u_0} &\Bigg\{
+%         \mt{z}_N S z_N + \sum_{k=0}^{N-1}
+%           \mt{z}_k Q z_k + \mt{u}_k R u_k + V \|\epsilon_k\|_1 
+%         \Bigg\} \\
+%       \text{subject to}\quad & 
+%         \begin{aligned}[t]
+%           z_{k+1} &= A z_k + B u_k  && \text{(dynamics)} \\
+%           G_z z_k &\leq g_z - G_z z_s + \epsilon_k && \text{(relaxed state constr.)} \\
+%           G_u u_k &\leq g_u - G_u u_s && \text{(input constr.)}\\
+%           z_N &= z_f - z_s && \text{(terminal constr.)} \\
+%           z_0 &= z_n - z_s && \text{(parametrisation)}
+%         \end{aligned}
+%     \end{align*}
+%     Index $n$ is real time, $k$ is the prediction time. The $\epsilon_k$ are
+%     linearly penalized slack variables, and $N$ is the ``horizon length'' for
+%     the prediction.
+%   \end{block}
+% 
+%   \begin{alertblock}{Model Uncertainty} \small
+%     The linearised model is very inaccurate in $x$ and $\theta$. To take
+%     into account make future states more expensive:
+%     \(
+%       Q_k = \operatorname{diag} \begin{bmatrix}
+%         q_0 + \varsigma_0 k/N & \dots
+%         & q_{n_x} + \varsigma_{n_x} k/N
+%       \end{bmatrix}.
+%     \)
+%   \end{alertblock}
+% \end{frame}
 
 \end{document}
